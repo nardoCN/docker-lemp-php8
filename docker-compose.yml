@@ -1,0 +1,73 @@
+version: '3'
+services:
+
+  #PHP Service
+  apps:
+    build:
+      context: ./php
+      dockerfile: Dockerfile
+    image: nhancch/php8.0
+    container_name: nhancch_php_8_0
+    environment:
+      SERVICE_NAME: app
+      SERVICE_TAGS: dev
+    volumes:
+      - ./html:/var/www/html
+      - ./php/local.ini:/usr/local/etc/php/conf.d/local.ini
+    networks:
+      - app-network
+    depends_on:
+      - mysql
+
+  #WEBSERVER
+  nginx:
+    image: nginx:latest
+    container_name: nhancch_nginx_latest
+    tty: true
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./html:/var/www/html
+      - ./logs:/var/log/nginx
+      - ./nginx/conf.d:/etc/nginx/conf.d
+    networks:
+      - app-network
+    depends_on:
+      - apps
+
+  #DATABASE
+  mysql:
+    image: mysql:5.7.22
+    container_name: nhancch_mysql_5_7_22
+    ports: 
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: chunhan
+    volumes:
+      - ./mysql/data:/var/data
+      - ./mysql/my.cnf:/etc/mysql/my.cnf
+    networks:
+      - app-network
+
+  #PHPMYADMIN
+  phpmyadmin:
+    build:
+      context: ./phpmyadmin
+      dockerfile: Dockerfile
+    image: nhancch/phpmyadmin
+    ports:
+      - "8080:80"
+    networks:
+      - app-network
+    environment:
+      PMA_HOST: mysql
+    depends_on:
+      - mysql
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  dbdata:
+    driver: local
